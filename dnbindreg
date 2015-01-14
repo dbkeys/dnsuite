@@ -1,0 +1,48 @@
+#!/bin/bash
+
+# Usage: dnbindreg <domain.tld> <zonetype: { NULL==master, slave}]
+#  Next iteration:
+# Usage: dnbindreg <domain.tld> <zonetype: { NULL==ZFTYPE, master, slave}]
+
+
+echo $0" "$1" "$2" "$3
+
+# Parse core domain name and top-level domain name (tld)
+domain=${1%.*};
+tld=${1#*.}
+
+# if domain input string is not null then,
+if [ -n "$domain" ]; then
+    # initially assume master type is specified;
+    zft=master;
+    echo " assumed type master"
+    if [ -n "$2" ]; then
+      # if slave is specified then set zone file type (zft) to slave
+      if [ "$2" == "slave" ]; then
+          zft=slave
+          echo " changed type to slave"
+      else
+        # if something other than master or slave was specified, 
+        # it's an error, but assume master
+        if [ "$2" != "master" ]; then
+          echo "zone file type specifics incorrect, assuming master"
+          echo " chided human for bad input."
+        fi
+      fi
+    fi
+    echo "Registering zone file as "$zft" type."
+    cfpath='/etc'
+    cfname='named.conf'
+    # --- Put new record of zone file into bind's configuration file-----------
+    # function to check this name is not already there ... ?
+
+    # Append domain entry into the named daemon's control file 
+    #   (list of zones controlled by this name server.)
+    #    * assumes it's a master zone file
+    echo -e "zone \"$domain.$tld\" IN {\n\ttype "$zft";\n\tfile \"$domain.$tld.db\";\n};" >> $cfpath/$cfname
+    # Activation of new domains more properly done by other scripts; de-activate here...
+    # /etc/init.d/named restart 
+    # tail /var/log/messages -f
+else
+    echo "Usage: dnbindreg <domain.tld> <zonetype: {NULL=ZFTYPE, master, slave}]"
+fi
