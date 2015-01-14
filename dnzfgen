@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# Usage: dnzfgen <domain.tld>
+#   domain name zone file generate = dnzfgen
+#   Generates a zone file for the given domain name from a template.
+
+zfpath='/var/named'
+
+# Parse core domain name and top-level domain name (tld)
+domain=${1%.*};
+tld=${1#*.}
+
+if [ -n "$domain" ]; then
+# --- Create new zone file for requested domain ----------------------
+
+    # zone file 'path and name'
+    zfpan=$zfpath/$domain.$tld.db
+    if [ -e "$zfpan" ]; then
+        echo "dnzfgen: File: "$zfpan" already exists !"
+    else
+        # Create a serial number for the domain record file
+        sernum=$(date +"%Y%m%d")00
+
+        # create new zone file from template
+        cp $zfpath/dnzf.template.v03.db $zfpan
+        # customize zone file, our domain name and top-level domain name
+        sed -i s/domain/$domain/ $zfpan
+        sed -i s/rrr/$tld/ $zfpan
+        # Assign ip-address for named-based hosting
+        # TODO: move out fixed ip to a file
+        sed -i s/ipnum/204\.68\.122\.6/ $zfpan
+        sed -i s/yyyymmddvv/$sernum/ $zfpan
+
+        # Ensure root:named (owner:group) for the zone file
+        chown root:named $zfpan
+    fi
+else
+    echo "usage: dnzfgen <domain.tld>"
+fi
